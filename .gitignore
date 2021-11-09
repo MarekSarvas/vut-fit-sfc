@@ -1,5 +1,8 @@
-
+.vscode/
+.idea/
 sfc_env/
+src/.vscode/
+src/__pycache__
 
 # Prerequisites
 *.d
