@@ -1,0 +1,7 @@
+#!/home/marek/Documents/FIT/mit/sfc/vut-fit-sfc/sfc_env/bin/python3
+import pcsv
+from jtutils import fix_broken_pipe
+
+if __name__ == "__main__":
+    fix_broken_pipe()
+    pcsv.pcsv()
