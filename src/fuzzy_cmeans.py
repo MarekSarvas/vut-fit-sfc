@@ -1,32 +1,24 @@
 import numpy as np
 import argparse
+from utils import plot_cmeans
+import time
 
 class FuzzyCMeans:
-    def __init__(self, epochs=100, data_path=None, centr_path=None, q=2):
+    def __init__(self, epochs=100, data_path=None, centr=3, q=2):
+        self.q = q
+        self.epochs = epochs
+        self.clusters = centr
         self.data_points = None
-        self.centroids = None
-        self.clusters = None
-        
+
         # load data
         if data_path is not None:
             try:
                 self.data_points = self._load_data(data_path)
             except Exception as e:
                 print('Wrong data file: {}'.format(e))
-        
-        if centr_path is not None:
-            try:
-                self.centroids = self._load_data(centr_path)
-                self.clusters = self.centroids.shape[0]
-            except Exception as e:
-                print('Wrong centroids file: {}'.format(e))
 
-        # set variables and initialize memberships
-        self.q = q
-        self.epochs = epochs
         self.memberships = self._init_memberships() # membership of each data point to each cluster with shape (number of data points, number of clusters)
-        #self.update_membership() # testing
-        #self.update_centroids()
+        self.centroids = self._init_centroids()
 
     def _load_data(self, path):
         return np.genfromtxt(path, delimiter=',')
@@ -36,6 +28,10 @@ class FuzzyCMeans:
     
     def _init_memberships(self):
         return np.random.dirichlet(np.ones(self.clusters),size=self.data_points.shape[0])
+
+    def _init_centroids(self):
+        return np.zeros((self.clusters, 2))
+
 
     def update_centroids(self):
         #print(self.data_points[0], self.memberships[0])
@@ -71,22 +67,28 @@ class FuzzyCMeans:
                 #print(current_sum, np.power(in_sum, 2/(self.q - 1)))
                 self.memberships[i][j] = 1 / current_sum
 
-        #print(self.memberships[0])
 
     def run_clustering(self):
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='old.png')
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids()
             self.update_membership()
+        self.update_centroids()
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='new.png')
+            
+            
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', default='../data/data_3c_100.csv', help='path to data csv')
-    parser.add_argument('--centroids', default='../data/data_3c_100_centroids_mu.csv', help='path to centroids data csv')
-    parser.add_argument('--ep', default=100, help='number of epochs for algorithm')
+    parser.add_argument('--clusters', default=3, type=int, help='path to centroids data csv')
+    parser.add_argument('--ep', default=100, type=int, help='number of epochs for algorithm')
 
     args = parser.parse_args()
 
-    fcmeans = FuzzyCMeans(args.ep, args.data, args.centroids)
-    pass
+    fcmeans = FuzzyCMeans(args.ep, args.data, args.clusters)
+    fcmeans.run_clustering()
+    
+    #plot_cmeans(fcmeans.data_points, fcmeans.centroids, fcmeans.memberships)
