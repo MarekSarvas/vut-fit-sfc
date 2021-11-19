@@ -15,18 +15,21 @@ def plot_train_data(data, centroids):
     plt.show()
 
 
-def plot_cmeans(data, centers, clusters, save_as=None):
-    clusters_id = np.argmax(clusters, axis=1)
-    clusters_mem = np.max(clusters, axis=1)
+def plot_cmeans(data, centers, membership, save_as=None):
+    clusters_id = np.argmax(membership, axis=1)
+    clusters_mem = np.max(membership, axis=1)
     data = data.T
-    cmap = 'tab10'
+
     fig, ax = plt.subplots()
     scatter = ax.scatter(data[0], data[1], c=clusters_id, alpha=0.5,s=clusters_mem*100, label=clusters_id)
 
     ax.scatter(centers.T[0], centers.T[1], c=np.arange(centers.shape[0]), marker='X', edgecolor='black', lw = 1)
-    
+    labels = []
+    for i in range(centers.shape[0]):
+        labels.append(f"Cluster {i}")
     ax.set_xlabel('x')
     ax.set_ylabel('y')
+    plt.legend(handles=scatter.legend_elements()[0], labels=labels)
     if save_as is not None:
         plt.savefig(save_as)
     plt.show()

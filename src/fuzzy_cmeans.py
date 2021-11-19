@@ -19,6 +19,8 @@ class FuzzyCMeans:
 
         self.memberships = self._init_memberships() # membership of each data point to each cluster with shape (number of data points, number of clusters)
         self.centroids = self._init_centroids()
+        self.dist = np.zeros((self.data_points.shape[0], self.clusters))
+        self.update_w_dist(0)
 
     def _load_data(self, path):
         return np.genfromtxt(path, delimiter=',')
@@ -32,7 +34,18 @@ class FuzzyCMeans:
     def _init_centroids(self):
         return np.zeros((self.clusters, 2))
 
+    def update_w_dist(self, iter):
 
+        for c in range(self.clusters):
+            dist = np.linalg.norm(self.data_points - self.centroids[c], axis=1)
+            dist = np.power(dist, 2)
+            #print(dist[:10])
+            #print(self.memberships[:10, c])
+            #self.weighted_dist[:, c] = dist * self.memberships[:, c]
+            #print(self.weighted_dist[:10])
+        
+        #print(np.sum(self.weighted_dist, axis=0))
+        #print(self.memberships[0], self.memberships[:10, 0])
     def update_centroids(self):
         #print(self.data_points[0], self.memberships[0])
 
@@ -74,9 +87,11 @@ class FuzzyCMeans:
             print("Epoch: {}".format(epoch))
             self.update_centroids()
             self.update_membership()
-        self.update_centroids()
-        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='new.png')
+            #self.update_w_dist(epoch)
             
+
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='new.png')
+        
             
 
 
@@ -88,7 +103,7 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    fcmeans = FuzzyCMeans(args.ep, args.data, args.clusters)
+    fcmeans = FuzzyCMeans(args.ep, args.data, args.clusters, q=2)
     fcmeans.run_clustering()
-    
+    #np.savetxt('trained.csv', (fcmeans.data_points, fcmeans.weighted_dist), delimiter=",",newline='\n',fmt='%f')
     #plot_cmeans(fcmeans.data_points, fcmeans.centroids, fcmeans.memberships)
