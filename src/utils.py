@@ -16,7 +16,7 @@ def plot_train_data(data, centroids):
 
 
 def plot_cmeans(data, centers, membership, save_as=None):
-    clusters_id = np.argmax(membership, axis=1)
+    clusters_id = np.argmin(membership, axis=1)
     clusters_mem = np.max(membership, axis=1)
     data = data.T
 

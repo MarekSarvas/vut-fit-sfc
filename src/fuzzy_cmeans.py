@@ -41,11 +41,12 @@ class FuzzyCMeans:
             dist = np.power(dist, 2)
             #print(dist[:10])
             #print(self.memberships[:10, c])
-            #self.weighted_dist[:, c] = dist * self.memberships[:, c]
+            self.dist[:, c] = dist
             #print(self.weighted_dist[:10])
         
         #print(np.sum(self.weighted_dist, axis=0))
         #print(self.memberships[0], self.memberships[:10, 0])
+        #print(self.dist)
     def update_centroids(self):
         #print(self.data_points[0], self.memberships[0])
 
@@ -82,15 +83,15 @@ class FuzzyCMeans:
 
 
     def run_clustering(self):
-        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='old.png')
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='old_mem.png')
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids()
             self.update_membership()
-            #self.update_w_dist(epoch)
+            self.update_w_dist(epoch)
             
 
-        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='new.png')
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as='new_mem.png')
         
             
 
@@ -105,5 +106,3 @@ if __name__=='__main__':
 
     fcmeans = FuzzyCMeans(args.ep, args.data, args.clusters, q=2)
     fcmeans.run_clustering()
-    #np.savetxt('trained.csv', (fcmeans.data_points, fcmeans.weighted_dist), delimiter=",",newline='\n',fmt='%f')
-    #plot_cmeans(fcmeans.data_points, fcmeans.centroids, fcmeans.memberships)
