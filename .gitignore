@@ -3,7 +3,9 @@
 sfc_env/
 src/.vscode/
 src/__pycache__
-
+img/
+Covid19-dataset/
+fcm_image.py
 # Prerequisites
 *.d
 

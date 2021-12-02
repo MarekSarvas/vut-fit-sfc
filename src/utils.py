@@ -32,11 +32,11 @@ def plot_cmeans(data, centers, membership, save_as=None):
     ax.set_ylabel('y')
     plt.legend(handles=scatter.legend_elements()[0], labels=labels)
     if save_as is not None:
-        plt.savefig(save_as)
+        plt.savefig(save_as+".png")
     plt.show()
 
 
-def plot_img(old_img, segmented):
+def plot_img(old_img, segmented, save_img=None):
     fig=plt.figure(figsize=(12,8),dpi=100)
     
     ax1=fig.add_subplot(1,2,1)
@@ -46,7 +46,8 @@ def plot_img(old_img, segmented):
     ax2=fig.add_subplot(1,2,2)
     ax2.imshow(segmented)
     ax2.set_title('Segmentation with fuzzy Cmeans')
-    
+    if save_img is not None:
+        plt.savefig(save_img+".png")
     plt.show()
 
 
