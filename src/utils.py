@@ -32,7 +32,7 @@ def plot_cmeans(data, centers, membership, save_as=None):
     ax.set_ylabel('y')
     plt.legend(handles=scatter.legend_elements()[0], labels=labels)
     if save_as is not None:
-        plt.savefig(save_as+".png")
+        plt.savefig(save_as+".png", tight_layout=True)
     plt.show()
 
 
