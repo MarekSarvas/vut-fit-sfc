@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QDialog, QApplication, QGridLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget, QLabel
+from PyQt5.QtWidgets import QDialog, QApplication, QGridLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget, QLabel, QStackedLayout
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -12,19 +12,29 @@ import numpy as np
 from fuzzy_cmeans import FuzzyCMeans
 matplotlib.use("Qt5agg")
 
+
 class Window(QWidget):
     def __init__(self, args, parent=None):
         super(Window, self).__init__(parent)
         
+        self.FCM = FuzzyCMeans("points", args.data_path, args.epochs, args.num_clusters, args.q, args)
+        self.stop = False # pause 2D clustering
 
-        self.FCM = FuzzyCMeans(args.task, args.data_path, args.epochs, args.num_clusters, args.q, args)
-        self.stop = False
+        self.FCM_img = FuzzyCMeans("img", args.data_path_img, args.epochs_img, args.num_clusters_img, args.q_img)
+        self.active_img = 0 # 0 for greyscale 1 for segmented
+        self.stop_img = False # pause segmentation loop 
+        
         # a figure instance to plot on
         self.figure, self.ax = plt.subplots()
+
+        self.figure_img1, self.ax_img1 = plt.subplots()
+        #self.figure_img2, self.ax_img2 = plt.subplots()
 
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
         self.canvas = FigureCanvas(self.figure)
+        self.canvas_img1 = FigureCanvas(self.figure_img1)
+        #self.canvas_img2 = FigureCanvas(self.figure_img2)
 
         # this is the Navigation widget
         # it takes the Canvas widget and a parent
@@ -49,6 +59,8 @@ class Window(QWidget):
 
         mainLayout = QGridLayout()
         vLayout1 = QVBoxLayout()
+
+        # TAB 1.1
         self.tab1_1 = QWidget()
         self.tab1_1.layout = QVBoxLayout()
         #self.tab1_1.layout.addWidget(QLabel('dsalk;da'))
@@ -57,11 +69,21 @@ class Window(QWidget):
         self.tab1_1.layout.addWidget(self.button3)
         self.tab1_1.setLayout(self.tab1_1.layout)
 
-        self.btn = QPushButton('A BUtton')
-        self.btn.clicked.connect(lambda: print('Hello'))
+        # TAB 1.2
+        self.btn = QPushButton('Run segmentation')
+        self.btn.clicked.connect(self.run_segmentation)
+        self.btn1 = QPushButton('Grey/Segmented')
+        self.btn1.clicked.connect(self.switch)
+        self.btn2 = QPushButton('Stop')
+        self.btn2.clicked.connect(self.stop_segmentation)
+        
         self.tab1_2 = QWidget()
         self.tab1_2.layout = QVBoxLayout()
+        self.tab1_2.layout.addWidget(self.canvas_img1)
+        #self.tab1_2.layout.addWidget(self.canvas_img2)
         self.tab1_2.layout.addWidget(self.btn)
+        self.tab1_2.layout.addWidget(self.btn1)
+        self.tab1_2.layout.addWidget(self.btn2)
         self.tab1_2.setLayout(self.tab1_2.layout)
 
         self.tabs = QTabWidget()
@@ -77,6 +99,9 @@ class Window(QWidget):
         self.figure.canvas.draw_idle()
         self.figure.canvas.start_event_loop(0.001)
         self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
+        
+        self.figure_img1.canvas.draw_idle()
+        self.plot_segmentation()
 
 
     def onclick(self, event):
@@ -84,16 +109,17 @@ class Window(QWidget):
           ('double' if event.dblclick else 'single', event.button,
            event.x, event.y, event.xdata, event.ydata))
     
-    def mypause(self, interval):
-        backend = plt.rcParams['backend']
-        if backend in matplotlib.rcsetup.interactive_bk:
-            figManager = matplotlib._pylab_helpers.Gcf.get_active()
-            if figManager is not None:
-                canvas = figManager.canvas
-                if canvas.figure.stale:
-                    canvas.draw()
-                canvas.start_event_loop(interval)
-                return
+    def cluster_pause(self, interval):
+        if self.canvas.figure.stale:
+            self.canvas.draw()
+        self.canvas.start_event_loop(interval)
+        return
+    
+    def img_pause(self, interval):
+        if self.canvas_img1.figure.stale:
+                self.canvas_img1.draw()
+        self.canvas_img1.start_event_loop(interval)
+        return
 
     def a(self):
         print('ajfiopsa')
@@ -102,16 +128,13 @@ class Window(QWidget):
         self.stop = True
 
     def run_clustering(self):
+        self.canvas.stop_event_loop()
         self.stop = False
-        for i in range(self.FCM.epochs):
+        for _ in range(self.FCM.epochs):
             self.FCM.one_step()
-
             self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
             if self.stop:
                 break
-            
-
-
 
     def plot_cmeans(self, data, centers, membership, save_as=None):
         clusters_id = np.argmax(membership, axis=1)
@@ -134,28 +157,38 @@ class Window(QWidget):
         if save_as is not None:
             plt.savefig(save_as+".png", tight_layout=True)
         self.canvas.draw()
-        self.mypause(0.2)
+        self.cluster_pause(0.2)
 
+    def run_segmentation(self):
+        self.canvas_img1.stop_event_loop()
+        self.stop_img = False
+        for _ in range(self.FCM_img.epochs):
+            self.FCM_img.one_step()
+            self.plot_segmentation()
+            if self.stop_img:
+                break
+    
+    def stop_segmentation(self):
+        self.stop_img = True
 
-    def plot(self):
-        ''' plot some random stuff '''
-        # random data
-        data = [random.random() for i in range(10)]
+    def plot_segmentation(self):
+        self.figure_img1.clear()
+        ax = self.figure_img1.add_subplot(111)
+        if self.active_img == 0:
+            ax.imshow(self.FCM_img.grey_img, cmap='gray')
+        else:
+            img = self.FCM_img.reconstruct_img()
+            ax.imshow(img)
+        
+        #plt.legend(handles=scatter.legend_elements()[0], labels=labels)
+        self.canvas_img1.draw()
+        self.img_pause(0.2)
 
-        # instead of ax.hold(False)
-        self.figure.clear()
+    def switch(self):
+        self.canvas_img1.stop_event_loop()
+        self.active_img = 1 - self.active_img
+        self.plot_segmentation()
 
-        # create an axis
-        ax = self.figure.add_subplot(111)
-
-        # discards the old graph
-        # ax.hold(False) # deprecated, see above
-
-        # plot data
-        ax.plot(data, '*-')
-
-        # refresh canvas
-        self.canvas.draw()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -163,7 +196,12 @@ if __name__ == '__main__':
     parser.add_argument('--num_clusters', default=9, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs', default=40, type=int, help='number of epochs for algorithm')
     parser.add_argument('--q', default=2, type=int, help='fuzziness')
-    parser.add_argument('--task', default="points", type=str, help='cmeans on 2D data points or img')
+
+    parser.add_argument('--data_path_img', default='/home/marek/Documents/FIT/mit/sfc/vut-fit-sfc/data/img/covid_01.jpeg', help='path to data csv')
+    parser.add_argument('--num_clusters_img', default=9, type=int, help='path to centroids data csv')
+    parser.add_argument('--epochs_img', default=40, type=int, help='number of epochs for algorithm')
+    parser.add_argument('--q_img', default=2, type=int, help='fuzziness')
+
     parser.add_argument('--save_img', default="cmeans_plot", type=str, help='name of file to save cmeans plot')
     args = parser.parse_args()
 
