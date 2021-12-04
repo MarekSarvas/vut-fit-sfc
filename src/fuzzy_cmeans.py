@@ -12,22 +12,24 @@ class FuzzyCMeans:
         #self.data_points = data
         self.memberships = None
         self.cmeans_args = args
-
+        self.task = task
 
         if task == 'img':
             self.data_points = self.load_img_data(data_path)
             self._init_memberships(self.data_points.shape[0]) # membership of each data point to each cluster with shape (number of data points, number of clusters)
             self.run = self.run_clustering_img
             self.centroids = None 
+            self.one_step = self.one_step_img
         elif task == 'points':
             self.data_points = self.load_2D_data(data_path)
             self._init_memberships(self.data_points.shape[0])
             self.run = self.run_clustering_2D
             self.centroids = self._init_centroids()  # for plot 
+            self.one_step = self.one_step_2D
         else:
             print('Wrong task: {}'.format(task))
             exit()
-
+        self.old_data_points = self.data_points
     ########################## UTILS ###############################
     def update_w_dist(self, iter):
 
@@ -71,6 +73,11 @@ class FuzzyCMeans:
             idx = data_index%self.clusters == i
             self.memberships[idx, i] = 1
 
+    def reset(self):
+        self.data_points = self.old_data_points
+        self._init_memberships(self.data_points.shape[0])
+        if self.task == "points":
+            self.centroids = self._init_centroids()  # for plot 
 
     #################### 2D data points #########################
     def _init_centroids(self):
@@ -129,21 +136,28 @@ class FuzzyCMeans:
 
     ###############################################################################
     def run_clustering_2D(self):
-        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img+"_old")
+        #plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img+"_old")
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids_2D()
             self.update_membership_2D()
             # self.update_w_dist(epoch)
-        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img)
+        #plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img)
     
     def run_clustering_img(self):
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids_img()
             self.update_membership_img()
-        plot_img(self.grey_img, self.reconstruct_img(), args.save_img)
+        #plot_img(self.grey_img, self.reconstruct_img(), args.save_img)
 
+    def one_step_2D(self):
+        self.update_centroids_2D()
+        self.update_membership_2D()
+
+    def one_step_img(self):
+        self.update_centroids_img()
+        self.update_membership_img()
         
 
 

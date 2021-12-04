@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QDialog, QApplication, QGridLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget, QLabel, QStackedLayout
+from PyQt5.QtWidgets import QDialog, QApplication, QGridLayout, QHBoxLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget, QLabel, QStackedLayout
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -24,73 +24,75 @@ class Window(QWidget):
         self.active_img = 0 # 0 for greyscale 1 for segmented
         self.stop_img = False # pause segmentation loop 
         
-        # a figure instance to plot on
+        # figures for both tasks
         self.figure, self.ax = plt.subplots()
-
+        self.figure.tight_layout()
+       
         self.figure_img1, self.ax_img1 = plt.subplots()
-        #self.figure_img2, self.ax_img2 = plt.subplots()
-
-        # this is the Canvas Widget that displays the `figure`
-        # it takes the `figure` instance as a parameter to __init__
+        self.figure_img1.tight_layout()
+        
+        # canvas for plots
         self.canvas = FigureCanvas(self.figure)
         self.canvas_img1 = FigureCanvas(self.figure_img1)
-        #self.canvas_img2 = FigureCanvas(self.figure_img2)
 
-        # this is the Navigation widget
-        # it takes the Canvas widget and a parent
-        #self.toolbar = NavigationToolbar(self.canvas, self)
-
-        # Just some button connected to `plot` method
-        self.button = QPushButton('Run')
-        self.button.clicked.connect(self.run_clustering)
-        self.button3 = QPushButton('Stop')
-        self.button3.clicked.connect(self.stop_clustering)
-        
-        self.button2 = QPushButton('B2')
-        self.button2.clicked.connect(self.a)
-        # set the layout
-        #layout = QVBoxLayout()
-        #layout.addWidget(self.toolbar)
-        #layout.addWidget(self.canvas)
-        #layout.addWidget(self.button)
-        #layout.addWidget(self.button2)
-        #self.setLayout(layout)
         
 
         mainLayout = QGridLayout()
         vLayout1 = QVBoxLayout()
 
         # TAB 1.1
+        # Buttons for points clustering
+        self.button = QPushButton('Run')
+        self.button.clicked.connect(self.run_clustering)
+        self.button3 = QPushButton('Stop')
+        self.button3.clicked.connect(self.stop_clustering)
+        self.button2 = QPushButton('Reset')
+        self.button2.clicked.connect(self.reset_clustering)
+        
         self.tab1_1 = QWidget()
         self.tab1_1.layout = QVBoxLayout()
-        #self.tab1_1.layout.addWidget(QLabel('dsalk;da'))
-        self.tab1_1.layout.addWidget(self.canvas)
-        self.tab1_1.layout.addWidget(self.button)
-        self.tab1_1.layout.addWidget(self.button3)
+        self.plot_layout1 = QVBoxLayout()
+        self.btn_layout1 = QHBoxLayout()
+        self.tab1_1.layout.addLayout(self.plot_layout1)
+        self.tab1_1.layout.addLayout(self.btn_layout1)
+    
+        self.plot_layout1.addWidget(self.canvas)
+        self.btn_layout1.addWidget(self.button)
+        self.btn_layout1.addWidget(self.button3)
+        self.btn_layout1.addWidget(self.button2)
         self.tab1_1.setLayout(self.tab1_1.layout)
 
         # TAB 1.2
+        # Buttons for image segmentation
         self.btn = QPushButton('Run segmentation')
         self.btn.clicked.connect(self.run_segmentation)
         self.btn1 = QPushButton('Grey/Segmented')
         self.btn1.clicked.connect(self.switch)
         self.btn2 = QPushButton('Stop')
         self.btn2.clicked.connect(self.stop_segmentation)
+        self.btn3 = QPushButton('Reset')
+        self.btn3.clicked.connect(self.reset_segmentation)
         
         self.tab1_2 = QWidget()
         self.tab1_2.layout = QVBoxLayout()
-        self.tab1_2.layout.addWidget(self.canvas_img1)
-        #self.tab1_2.layout.addWidget(self.canvas_img2)
-        self.tab1_2.layout.addWidget(self.btn)
-        self.tab1_2.layout.addWidget(self.btn1)
-        self.tab1_2.layout.addWidget(self.btn2)
+        self.plot_layout = QVBoxLayout()
+        self.btn_layout = QHBoxLayout()
+        self.tab1_2.layout.addLayout(self.plot_layout)
+        self.tab1_2.layout.addLayout(self.btn_layout)
+        self.plot_layout.addWidget(self.canvas_img1)
+        
+        self.btn_layout.addWidget(self.btn)
+        self.btn_layout.addWidget(self.btn1)
+        self.btn_layout.addWidget(self.btn2)
+        self.btn_layout.addWidget(self.btn3)
         self.tab1_2.setLayout(self.tab1_2.layout)
+        
 
+        # set tabs in main app
         self.tabs = QTabWidget()
         self.tabs.addTab(self.tab1_1, 'tab1')
         self.tabs.addTab(self.tab1_2, 'tab2')
         mainLayout.addWidget(self.tabs, 0, 0)
-        #mainLayout.addWidget(self.button)
         self.setLayout(mainLayout)
         cid = self.figure.canvas.mpl_connect('button_press_event', self.onclick)
 
@@ -121,9 +123,7 @@ class Window(QWidget):
         self.canvas_img1.start_event_loop(interval)
         return
 
-    def a(self):
-        print('ajfiopsa')
-
+############### points clustering ######################
     def stop_clustering(self):
         self.stop = True
 
@@ -135,6 +135,13 @@ class Window(QWidget):
             self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
             if self.stop:
                 break
+    
+    def reset_clustering(self):
+        self.canvas.stop_event_loop()
+        self.stop = True
+        self.FCM.reset()
+        self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
+
 
     def plot_cmeans(self, data, centers, membership, save_as=None):
         clusters_id = np.argmax(membership, axis=1)
@@ -159,9 +166,11 @@ class Window(QWidget):
         self.canvas.draw()
         self.cluster_pause(0.2)
 
+############### img segmentation ######################
     def run_segmentation(self):
         self.canvas_img1.stop_event_loop()
         self.stop_img = False
+        self.active_img = 1
         for _ in range(self.FCM_img.epochs):
             self.FCM_img.one_step()
             self.plot_segmentation()
@@ -180,13 +189,19 @@ class Window(QWidget):
             img = self.FCM_img.reconstruct_img()
             ax.imshow(img)
         
-        #plt.legend(handles=scatter.legend_elements()[0], labels=labels)
         self.canvas_img1.draw()
         self.img_pause(0.2)
 
     def switch(self):
         self.canvas_img1.stop_event_loop()
         self.active_img = 1 - self.active_img
+        self.plot_segmentation()
+    
+    def reset_segmentation(self):
+        self.canvas_img1.stop_event_loop()
+        self.stop_img = True
+        self.FCM_img.reset()
+        self.active_img = 0
         self.plot_segmentation()
 
 
@@ -208,6 +223,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     main = Window(args)
+    main.resize(1200, 900)
     main.show()
 
     sys.exit(app.exec_())
