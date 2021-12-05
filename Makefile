@@ -22,4 +22,4 @@ app_default:
 	source path.sh && cd src && python3 app.py 
 
 zip:
-	zip -r xsarva00.zip data/ doc/ src/*.py src/*.png Makefile install.sh path.sh requirements.txt 
+	zip -r xsarva00.zip data/ SFC_documentation.pdf src/*.py Makefile install.sh path.sh requirements.txt 
