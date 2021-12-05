@@ -1,4 +1,5 @@
 import sys
+from PIL.Image import new
 from PyQt5.QtWidgets import QDialog, QApplication, QGridLayout, QHBoxLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget, QLabel, QStackedLayout
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -108,9 +109,19 @@ class Window(QWidget):
 
 
     def onclick(self, event):
-        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-          ('double' if event.dblclick else 'single', event.button,
-           event.x, event.y, event.xdata, event.ydata))
+        if event.ydata is not None and event.xdata is not None:
+            print("Added point at [{}, {}]".format(event.xdata, event.ydata))
+            
+            new_data = np.asarray([[event.xdata, event.ydata]])
+            new_mem = np.zeros(self.FCM.clusters)
+            new_mem = new_mem[None, :]
+            new_mem[0,0] = 1
+       
+            self.FCM.data_points = np.concatenate((self.FCM.data_points, new_data))
+            self.FCM.memberships = np.concatenate((self.FCM.memberships, new_mem))
+       
+            self.canvas.stop_event_loop()
+            self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
     
     def cluster_pause(self, interval):
         if self.canvas.figure.stale:
@@ -217,12 +228,12 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default='../data/points/data_9c_100_mu_15_var_6.csv', help='path to data csv')
     parser.add_argument('--num_clusters', default=9, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs', default=40, type=int, help='number of epochs for algorithm')
-    parser.add_argument('--q', default=2, type=int, help='fuzziness')
+    parser.add_argument('--q', default=2, type=float, help='fuzziness')
 
     parser.add_argument('--data_path_img', default='../data/img/covid_01.jpeg', help='path to data csv')
     parser.add_argument('--num_clusters_img', default=11, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs_img', default=40, type=int, help='number of epochs for algorithm')
-    parser.add_argument('--q_img', default=2, type=int, help='fuzziness')
+    parser.add_argument('--q_img', default=2, type=float, help='fuzziness')
 
     parser.add_argument('--save_img', default="cmeans_plot", type=str, help='name of file to save cmeans plot')
     args = parser.parse_args()
