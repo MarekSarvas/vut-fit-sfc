@@ -30,22 +30,8 @@ class FuzzyCMeans:
             print('Wrong task: {}'.format(task))
             exit()
         self.old_data_points = self.data_points
+    
     ########################## UTILS ###############################
-    def update_w_dist(self, iter):
-
-        for c in range(self.clusters):
-            dist = np.linalg.norm(self.data_points - self.centroids[c], axis=1)
-            dist = np.power(dist, 2)
-            #print(dist[:10])
-            #print(self.memberships[:10, c])
-            self.dist[:, c] = dist
-            #print(self.weighted_dist[:10])
-        
-        #print(np.sum(self.weighted_dist, axis=0))
-        #print(self.memberships[0], self.memberships[:10, 0])
-        #print(self.dist)     
-
-
     def load_2D_data(self, path):
         try:
             data = np.genfromtxt(path, delimiter=',')
@@ -84,37 +70,27 @@ class FuzzyCMeans:
         return np.zeros((self.clusters, 2))
 
     def update_centroids_2D(self):
-        #print(self.data_points[0], self.memberships[0])
-
-        
-        #print(self.data_points[0] * self.memberships[0][0])
-        #print(self.memberships.T[0][0])
         for i, c in enumerate(self.centroids):
             membership_tmp = self.memberships**self.q
             numerator_sum = np.sum(self.data_points * membership_tmp.T[i][:, np.newaxis], axis=0)
             denominator_sum = np.sum(membership_tmp.T[i])
-            #print(denominator_sum, numerator_sum)
+            
             self.centroids[i] = numerator_sum / denominator_sum
 
     def update_membership_2D(self):
         #print(self.memberships[0])
         for j in range(self.clusters):
             for i, x in enumerate(self.data_points):
-                #print('Cluster: {}, data: {}'.format(j+1, i))
-                
                 cloned_data = np.tile(x, (self.clusters,1))
-                #print(cloned_data)
-                #print(self.centroids)
-
+            
                 curr_centr_dist = np.linalg.norm(cloned_data - self.centroids[j], axis=1)  # || x_i - c_j ||
                 all_distances = np.linalg.norm(cloned_data - self.centroids, axis=1)       # || x_i - c_k ||
-                #print(curr_centr_dist)
-                #print(all_distances)
+                
                 
                 in_sum = curr_centr_dist / all_distances  # ||x_i - c_j|| / ||x_i - c_k||
-                #print(in_sum)
+                
                 current_sum = np.sum(in_sum**(2/(self.q - 1))) # SUM (||x_i - c_j|| / ||x_i - c_k||)^(2/(q-1))
-                #print(current_sum, np.power(in_sum, 2/(self.q - 1)))
+                
                 self.memberships[i][j] = 1 / current_sum
 
     ###############################################################################
@@ -136,20 +112,19 @@ class FuzzyCMeans:
 
     ###############################################################################
     def run_clustering_2D(self):
-        #plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img+"_old")
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img+"_old")
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids_2D()
             self.update_membership_2D()
-            # self.update_w_dist(epoch)
-        #plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img)
+        plot_cmeans(self.data_points, self.centroids, self.memberships, save_as=args.save_img)
     
     def run_clustering_img(self):
         for epoch in range(self.epochs):
             print("Epoch: {}".format(epoch))
             self.update_centroids_img()
             self.update_membership_img()
-        #plot_img(self.grey_img, self.reconstruct_img(), args.save_img)
+        plot_img(self.grey_img, self.reconstruct_img(), args.save_img)
 
     def one_step_2D(self):
         self.update_centroids_2D()
@@ -164,7 +139,7 @@ class FuzzyCMeans:
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', default='/home/marek/Documents/FIT/mit/sfc/vut-fit-sfc/data/data_9c_100_mu_15_var_6.csv', help='path to data csv')
+    parser.add_argument('--data_path', default='../data/points/data_9c_100_mu_15_var_6.csv', help='path to data csv')
     parser.add_argument('--num_clusters', default=9, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs', default=40, type=int, help='number of epochs for algorithm')
     parser.add_argument('--q', default=2, type=int, help='fuzziness')
@@ -172,9 +147,6 @@ if __name__=='__main__':
     parser.add_argument('--save_img', default="cmeans_plot", type=str, help='name of file to save cmeans plot')
     args = parser.parse_args()
 
-    #img_path = '../img/mdb321.jpg'
-    #data_path = img_path
-    #data_path = data_2D
 
     fcmeans = FuzzyCMeans(args.task, args.data_path, args.epochs, args.num_clusters, args.q, args)
     fcmeans.run()

@@ -19,11 +19,12 @@ class Window(QWidget):
         
         self.FCM = FuzzyCMeans("points", args.data_path, args.epochs, args.num_clusters, args.q, args)
         self.stop = False # pause 2D clustering
+        self.epoch = 0
 
         self.FCM_img = FuzzyCMeans("img", args.data_path_img, args.epochs_img, args.num_clusters_img, args.q_img)
         self.active_img = 0 # 0 for greyscale 1 for segmented
         self.stop_img = False # pause segmentation loop 
-        
+        self.epoch_img = 0
         # figures for both tasks
         self.figure, self.ax = plt.subplots()
         self.figure.tight_layout()
@@ -90,8 +91,8 @@ class Window(QWidget):
 
         # set tabs in main app
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.tab1_1, 'tab1')
-        self.tabs.addTab(self.tab1_2, 'tab2')
+        self.tabs.addTab(self.tab1_1, 'Clustering')
+        self.tabs.addTab(self.tab1_2, 'Segmentation')
         mainLayout.addWidget(self.tabs, 0, 0)
         self.setLayout(mainLayout)
         cid = self.figure.canvas.mpl_connect('button_press_event', self.onclick)
@@ -132,6 +133,7 @@ class Window(QWidget):
         self.stop = False
         for _ in range(self.FCM.epochs):
             self.FCM.one_step()
+            self.epoch += 1
             self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
             if self.stop:
                 break
@@ -140,6 +142,7 @@ class Window(QWidget):
         self.canvas.stop_event_loop()
         self.stop = True
         self.FCM.reset()
+        self.epoch = 0
         self.plot_cmeans(self.FCM.data_points, self.FCM.centroids, self.FCM.memberships)
 
 
@@ -151,6 +154,7 @@ class Window(QWidget):
         #fig, ax = plt.subplots()
         self.figure.clear()
         ax = self.figure.add_subplot(111)
+        self.figure.suptitle('Epoch: {}'.format(self.epoch), fontsize=16)
         scatter = ax.scatter(data[0], data[1], c=clusters_id, alpha=0.5,s=clusters_mem*100, label=clusters_id)
         #print(centers)
         
@@ -173,6 +177,7 @@ class Window(QWidget):
         self.active_img = 1
         for _ in range(self.FCM_img.epochs):
             self.FCM_img.one_step()
+            self.epoch_img += 1
             self.plot_segmentation()
             if self.stop_img:
                 break
@@ -183,6 +188,7 @@ class Window(QWidget):
     def plot_segmentation(self):
         self.figure_img1.clear()
         ax = self.figure_img1.add_subplot(111)
+        self.figure_img1.suptitle('Epoch: {}'.format(self.epoch_img), fontsize=16)
         if self.active_img == 0:
             ax.imshow(self.FCM_img.grey_img, cmap='gray')
         else:
@@ -202,18 +208,19 @@ class Window(QWidget):
         self.stop_img = True
         self.FCM_img.reset()
         self.active_img = 0
+        self.epoch_img = 0
         self.plot_segmentation()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', default='/home/marek/Documents/FIT/mit/sfc/vut-fit-sfc/data/data_9c_100_mu_15_var_6.csv', help='path to data csv')
+    parser.add_argument('--data_path', default='../data/points/data_9c_100_mu_15_var_6.csv', help='path to data csv')
     parser.add_argument('--num_clusters', default=9, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs', default=40, type=int, help='number of epochs for algorithm')
     parser.add_argument('--q', default=2, type=int, help='fuzziness')
 
-    parser.add_argument('--data_path_img', default='/home/marek/Documents/FIT/mit/sfc/vut-fit-sfc/data/img/covid_01.jpeg', help='path to data csv')
-    parser.add_argument('--num_clusters_img', default=9, type=int, help='path to centroids data csv')
+    parser.add_argument('--data_path_img', default='../data/img/covid_01.jpeg', help='path to data csv')
+    parser.add_argument('--num_clusters_img', default=11, type=int, help='path to centroids data csv')
     parser.add_argument('--epochs_img', default=40, type=int, help='number of epochs for algorithm')
     parser.add_argument('--q_img', default=2, type=int, help='fuzziness')
 
